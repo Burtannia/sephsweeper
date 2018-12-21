@@ -3,6 +3,7 @@ module Sweeper.Board where
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
 import System.Random
+import Data.List (sortBy)
 
 data Button = Button BStatus BContents
     deriving Show
@@ -14,6 +15,8 @@ data BStatus = None | Flagged | Revealed | Question
     deriving (Show, Eq)
 
 data Board = Board Size (Seq Button)
+    deriving Show
+
 type Size = (Int, Int)
 type Coord = (Int, Int)
 
@@ -25,27 +28,41 @@ emptyBoard sz@(w,h) = Board sz $
 
 mkBoard :: Size -> Int -> IO Board
 mkBoard sz@(w,h) n = do
-    let brd@(Board sz sq) = emptyBoard sz
+    let board = emptyBoard sz
     mines <- selectRand n (indices sz)
+    print mines
     return $! foldr (\c b ->
-        update b c newMine) brd mines
+        incAdjs c $ addMine c b) board mines
+
+addMine :: Coord -> Board -> Board
+addMine c b = update b c newMine
+
+incAdjs :: Coord -> Board -> Board
+incAdjs c b =
+    let as = adjs c b
+     in foldr (\c b -> adjust b c incButton) b as
+
+incButton :: Button -> Button
+incButton (Button st Blank)      = Button st $ Number 1
+incButton (Button st (Number i)) = Button st $ Number (i + 1)
+incButton b                      = b
 
 newMine :: Button
 newMine = Button None (Mine False) 
 
 selectRand :: Int -> [a] -> IO [a]
 selectRand n xs
-    | n > length xs = xs
-    | n <= 0        = []
+    | n > length xs = return xs
+    | n <= 0        = return []
     | otherwise     = do
         gen <- getStdGen
-        let rs = randoms gen
-            ys = zip xs rs
-        return $! take n ys
+        let rs = (randoms gen :: [Int])
+            ys = sortBy (\(_,i) (_,j) -> compare i j) (zip xs rs)
+        return $! map fst $ take n ys
 
 indices :: Size -> [Coord]
-indices (w,h) = [ (i,j) | i <- [0..w]
-                        , j <- [0..h] ]
+indices (w,h) = [ (i,j) | i <- [0..w - 1]
+                        , j <- [0..h - 1] ]
 
 -- Board Access
 
@@ -54,11 +71,15 @@ indices (w,h) = [ (i,j) | i <- [0..w]
 
 update :: Board -> Coord -> Button -> Board
 update (Board sz@(w,_) sq) (x,y) b =
-    Board sz $ S.update (w * y + x) sq
+    Board sz $ S.update (w * y + x) b sq
+
+adjust :: Board -> Coord -> (Button -> Button) -> Board
+adjust (Board sz@(w,_) sq) (x,y) f =
+    Board sz $ S.adjust f (w * y + x) sq
 
 inBounds :: Coord -> Board -> Bool
 inBounds (x,y) (Board (w,h) _) = not $
-    x < 0 || y < 0 || x >= w || y >= height
+    x < 0 || y < 0 || x >= w || y >= h
 
 adjs :: Coord -> Board -> [Coord]
 adjs (x,y) b@(Board _ sq) =
@@ -68,24 +89,16 @@ adjs (x,y) b@(Board _ sq) =
         , not $ ix == (x,y)
         , inBounds ix b]
 
--- Button Handling
+-- Debugging
 
-buttonVal :: Button -> String
-buttonVal (Button Revealed (Number n)) = show n
-buttonVal _                            = ""
+printAscii :: Board -> IO ()
+printAscii (Board (_,0) _)  = return ()
+printAscii (Board (w,h) sq) = do
+    putStrLn $ foldr1 (++) $ S.intersperse " "
+        $ fmap asciiButton $ S.take w sq
+    printAscii $ Board (w, h-1) (S.drop w sq)
 
-buttonClass :: Button -> String
-buttonClass b = "button" ++ buttonClass' b
-    where
-        buttonClass' (Button None _)     = ""
-        buttonClass' (Button Flagged _)  = " button-flagged"
-        buttonClass' (Button Question _) = " button-question"
-        buttonClass' (Button Revealed c) = " button-revealed" ++
-            case c of
-                Mine True  -> " mine-tripped"
-                Mine False -> " mine"
-                _          -> ""
-
--- handle updates from buttons
--- set numbers on adjacent to mines
-
+asciiButton :: Button -> String
+asciiButton (Button _ (Number i)) = show i
+asciiButton (Button _ (Mine _))   = "X"
+asciiButton _                     = "-"

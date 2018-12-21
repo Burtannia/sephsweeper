@@ -6,21 +6,25 @@ import Sweeper.Board
 import Data.Time.Clock
 import Control.Lens
 
+data GameState = Unstarted
+               | InProgress
+               | GameOver Bool -- True = Won
+               deriving (Show, Eq)
+
 data Sweeper = Sweeper
     { _sBoard :: Board
     , _sFlags :: Int
     , _sStart :: UTCTime
     , _sState :: GameState
-    }
+    } deriving Show
 
 makeLenses ''Sweeper
 
-data GameState = Unstarted
-               | InProgress
-               | GameOver Bool -- True = Won
-
 mkGame :: Size -> Int -> IO Sweeper
-mkGame sz n = Sweeper (mkBoard sz n) n Unstarted
+mkGame sz n = do
+    b <- mkBoard sz n
+    t <- getCurrentTime
+    return $! Sweeper b n t Unstarted
 
 -- Standard Modes
 

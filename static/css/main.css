@@ -1,24 +1,61 @@
-.button-revealed {
+.button-none {
+    background-color: grey;
+}
 
+.button-revealed {
+    background-color: lightgray;
 }
 
 .button-flagged {
-
+    background: gray url(/static/images/flag.png) center no-repeat;
 }
 
 .button-question {
+    background: gray url(/static/images/question.png) center no-repeat;
+}
 
+.mine {
+    background: lightgrey url(/static/images/mine.png) center no-repeat;
+}
+
+.mine-tripped {
+    background: red url(/static/images/mine.png) center no-repeat;
 }
 
 .button {
     width: 50px;
     height: 50px;
+    background-size: 100% 100%;
 }
 
-.mine {
-
+.one {
+    color: blue;
 }
 
-.mine-tripped {
-    
+.two {
+    color: green;
+}
+
+.three {
+    color: red;
+}
+
+.four {
+    color: purple;
+}
+
+.five {
+    color: maroon;
+}
+
+.six {
+    color: turquoise;
+}
+
+.seven {
+    color: black;
+}
+
+.eight {
+    color: gray;
 }
