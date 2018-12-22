@@ -13,9 +13,11 @@ data GameState = Unstarted
 
 data Sweeper = Sweeper
     { _sBoard :: Board
+    , _sMines :: Int
     , _sFlags :: Int
-    , _sStart :: UTCTime
+    , _sStart :: Maybe UTCTime
     , _sState :: GameState
+    , _sClick :: Bool
     } deriving Show
 
 makeLenses ''Sweeper
@@ -23,8 +25,7 @@ makeLenses ''Sweeper
 mkGame :: Size -> Int -> IO Sweeper
 mkGame sz n = do
     b <- mkBoard sz n
-    t <- getCurrentTime
-    return $! Sweeper b n t Unstarted
+    return $! Sweeper b n n Nothing Unstarted False
 
 -- Standard Modes
 

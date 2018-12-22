@@ -1,9 +1,12 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Sweeper.Board where
 
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
 import System.Random
 import Data.List (sortBy)
+import Control.Lens hiding (indices)
 
 data Button = Button BStatus BContents
     deriving Show
@@ -14,11 +17,15 @@ data BContents = Mine Bool | Number Int | Blank
 data BStatus = None | Flagged | Revealed | Question
     deriving (Show, Eq)
 
-data Board = Board Size (Seq Button)
-    deriving Show
-
 type Size = (Int, Int)
 type Coord = (Int, Int)
+
+data Board = Board 
+    { _bSize :: Size
+    , _bButtons :: Seq Button
+    } deriving Show
+
+makeLenses ''Board
 
 -- Board Creation
 
@@ -35,12 +42,12 @@ mkBoard sz@(w,h) n = do
         incAdjs c $ addMine c b) board mines
 
 addMine :: Coord -> Board -> Board
-addMine c b = update b c newMine
+addMine c b = update c newMine b
 
 incAdjs :: Coord -> Board -> Board
 incAdjs c b =
     let as = adjs c b
-     in foldr (\c b -> adjust b c incButton) b as
+     in foldr (\c b -> adjust c incButton b) b as
 
 incButton :: Button -> Button
 incButton (Button st Blank)      = Button st $ Number 1
@@ -69,36 +76,43 @@ indices (w,h) = [ (i,j) | i <- [0..w - 1]
 (.!) :: Board -> Coord -> Button
 (Board (w,_) sq) .! (x,y) = S.index sq $ w * y + x
 
-update :: Board -> Coord -> Button -> Board
-update (Board sz@(w,_) sq) (x,y) b =
-    Board sz $ S.update (w * y + x) b sq
+update :: Coord -> Button -> Board -> Board
+update (x,y) btn brd =
+    let w = boardWidth brd
+     in update' (w * y + x) btn brd
 
-adjust :: Board -> Coord -> (Button -> Button) -> Board
-adjust (Board sz@(w,_) sq) (x,y) f =
-    Board sz $ S.adjust f (w * y + x) sq
+update' :: Int -> Button -> Board -> Board
+update' ix btn brd = over bButtons (S.update ix btn) brd 
+
+adjust :: Coord -> (Button -> Button) -> Board -> Board
+adjust (x,y) f brd =
+    let w = boardWidth brd
+     in adjust' (w * y + x) f brd
+
+adjust' :: Int -> (Button -> Button) -> Board -> Board
+adjust' ix f brd = over bButtons (S.adjust f ix) brd
 
 inBounds :: Coord -> Board -> Bool
-inBounds (x,y) (Board (w,h) _) = not $
-    x < 0 || y < 0 || x >= w || y >= h
+inBounds (x,y) b =
+    let w = boardWidth b
+        h = boardHeight b
+     in not $ x < 0 || y < 0 || x >= w || y >= h
 
 adjs :: Coord -> Board -> [Coord]
-adjs (x,y) b@(Board _ sq) =
+adjs (x,y) b =
     [ix | i <- [x - 1 .. x + 1]
         , j <- [y - 1 .. y + 1]
         , let ix = (i,j)
         , not $ ix == (x,y)
         , inBounds ix b]
 
--- Debugging
+boardWidth :: Board -> Int
+boardWidth b = fst $ view bSize b
 
-printAscii :: Board -> IO ()
-printAscii (Board (_,0) _)  = return ()
-printAscii (Board (w,h) sq) = do
-    putStrLn $ foldr1 (++) $ S.intersperse " "
-        $ fmap asciiButton $ S.take w sq
-    printAscii $ Board (w, h-1) (S.drop w sq)
+boardHeight :: Board -> Int
+boardHeight b = snd $ view bSize b
 
-asciiButton :: Button -> String
-asciiButton (Button _ (Number i)) = show i
-asciiButton (Button _ (Mine _))   = "X"
-asciiButton _                     = "-"
+ix2Coord :: Int -> Size -> Coord
+ix2Coord ix (w,h) =
+    let (y,x) = divMod ix w
+     in (x,y)
