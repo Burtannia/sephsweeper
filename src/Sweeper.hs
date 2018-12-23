@@ -52,8 +52,10 @@ setup init window = do
     game <- accumB initGame $ fmap head $ unions inputs
 
     -- counters
-    flagCounter <- UI.label # sink UI.text (fmap (show . L.view sFlags) game)
-    timerLabel <- UI.label # sink UI.text (fmap (show . L.view sTime) game)
+    flagCounter <- UI.label # sink UI.text (fmap (showCount . L.view sFlags) game)
+                            #. "counter"
+    timerLabel <- UI.label # sink UI.text (fmap (showCount . L.view sTime) game)
+                           #. "counter"
 
     -- classes and button text
     return faceButton # sink (UI.attr "class") (flip fmap game $ \g ->
@@ -64,50 +66,58 @@ setup init window = do
                   # sink UI.text (btnBehavior ix game buttonText)
 
     -- display / layout
-    let diffs = row
-            [ element beginnerButton
-            , element intermediateButton
-            , element expertButton
-            ]
-        
-        topPanel = row 
-            [ element flagCounter
-            , element faceButton
-            , element timerLabel
-            ]
+    diffs <- UI.div #. "diff-buttons"
+                    # set children
+                        [ beginnerButton
+                        , intermediateButton
+                        , expertButton
+                        ]
+    
+    topPanel <- UI.div #. "top-panel"
+                       # set children 
+                        [ flagCounter
+                        , faceButton
+                        , timerLabel
+                        ]
 
-        displayGrid = column
-            [ diffs
-            , topPanel
-            , grid $ map2 element buttons
-            ]
+    rows <- mapM mkRow buttons        
+    board <- UI.div #. "board"
+                    # set children rows
 
-    getBody window #+ [UI.center #+ [displayGrid]]
+    display <- UI.div #. "display"
+                      # set children
+                        [ diffs
+                        , topPanel
+                        , board
+                        ]
 
-    -- for deleting old elements when changing difficulty
-    let allElems = 
-            element beginnerButton
-            : element intermediateButton
-            : element expertButton
-            : element faceButton
-            : diffs
-            : topPanel
-            : displayGrid
-            : map element (concat buttons)
+    container <- UI.div #. "container"
+                        # set children [display]
+
+    getBody window #+ [element container]
 
     on UI.click beginnerButton $ const $
-            changeDifficulty mkBeginner window allElems gameTimer
+            changeDifficulty mkBeginner window container gameTimer
 
     on UI.click intermediateButton $ const $
-            changeDifficulty mkIntermediate window allElems gameTimer
+            changeDifficulty mkIntermediate window container gameTimer
 
     on UI.click expertButton $ const $
-            changeDifficulty mkExpert window allElems gameTimer
+            changeDifficulty mkExpert window container gameTimer
 
-changeDifficulty :: IO Sweeper -> Window -> [UI Element] -> UI.Timer -> UI ()
-changeDifficulty newGame window oldElems oldTimer = do
-    els <- sequence oldElems
-    mapM_ delete els
+mkRow :: [Element] -> UI Element
+mkRow els = UI.div # set children els
+                   #. "board-row"
+
+showCount :: Int -> String
+showCount i
+    | i < 10    = "00" ++ show i
+    | i < 100   = "0" ++ show i
+    | otherwise = show i
+
+changeDifficulty :: IO Sweeper -> Window -> Element -> UI.Timer -> UI ()
+changeDifficulty newGame window oldDisplay oldTimer = do
+    delete oldDisplay
     UI.stop oldTimer
     setup newGame window
 

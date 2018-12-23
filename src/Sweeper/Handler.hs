@@ -29,7 +29,11 @@ incTimer :: Sweeper -> Sweeper
 incTimer s
     | isGameOver s  = s
     | isUnstarted s = s
-    | otherwise     = over sTime (+1) s
+    | otherwise     = timeUp $ over sTime (+1) s
+    where
+        timeUp s
+            | view sTime s == 999 = set sState (GameOver False) s
+            | otherwise           = s
 
 isUnstarted :: Sweeper -> Bool
 isUnstarted s = Unstarted == view sState s

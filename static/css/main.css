@@ -2,6 +2,41 @@ html{
     background-color: #222222;
 }
 
+.container {
+    text-align: center;
+}
+
+.display {
+    display: inline-block;
+    border: 2px solid grey;
+}
+
+.top-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: silver;
+    border-top: 2px solid grey;
+    border-bottom: 2px solid grey;
+}
+
+.diff-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: silver;
+}
+
+.board {
+    display: flex;
+    flex-direction: column;
+}
+
+.board-row {
+    display: flex;
+    flex-direction: row;
+}
+
 .button-none {
     background: silver url(/static/images/tegank.png) center no-repeat;
 }
@@ -21,10 +56,12 @@ html{
 
 .mine {
     background: silver url(/static/images/mine.png) center no-repeat;
+    border: none;
 }
 
 .mine-tripped {
     background: red url(/static/images/mine.png) center no-repeat;
+    border: none;
 }
 
 .button {
@@ -33,8 +70,6 @@ html{
     background-size: 100% 100%;
     font-size: 1.05em;
     font-weight: 700;
-    padding: 0 !important;
-    margin: 0 !important;
     border-width: 3px;
     border-color: whitesmoke darkgray darkgray whitesmoke;
 }
@@ -56,8 +91,8 @@ html{
 }
 
 .face-button {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     background-size: 100% 100%;
 }
 
@@ -91,4 +126,29 @@ html{
 
 .number-8 {
     color: gray;
+}
+
+.difficulty-button {
+    margin: 5px;
+}
+
+.beginner {
+    color: green;
+}
+
+.intermediate {
+    color: blue;
+}
+
+.expert {
+    color: red;
+}
+
+.counter {
+    color: red;
+    font-family: "Courier New";
+    background-color: darkred;
+    font-size: 1.7em;
+    margin: 5px;
+    border: 1px solid grey;
 }
