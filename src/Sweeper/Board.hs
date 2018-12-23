@@ -37,7 +37,6 @@ mkBoard :: Size -> Int -> IO Board
 mkBoard sz@(w,h) n = do
     let board = emptyBoard sz
     mines <- selectRand n (indices sz)
-    print mines
     return $! foldr (\c b ->
         incAdjs c $ addMine c b) board mines
 

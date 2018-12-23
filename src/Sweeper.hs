@@ -8,33 +8,52 @@ import qualified Graphics.UI.Threepenny      as UI
 import           Graphics.UI.Threepenny.Core hiding (Handler)
 import qualified Control.Lens as L
 import qualified Data.Sequence as S (index)
+import System.IO.Unsafe (unsafePerformIO)
 
 runGame :: IO ()
 runGame = do
     startGUI defaultConfig
         { jsPort = Just 8023
         , jsStatic = Just "./static"
-        } setup
+        } (setup mkBeginner)
 
-setup :: Window -> UI ()
-setup window = do
+setup :: IO Sweeper -> Window -> UI ()
+setup init window = do
+
     _ <- return window # set UI.title "Sephsweeper"
     UI.addStyleSheet window "main.css"
 
-    -- create game
-    initGame <- liftIO mkBeginner
-    
-    -- top panel
-    flagCounter <- UI.label # set UI.text "0"
-    faceButton <- UI.button
-    timer <- UI.label # set UI.text "0"
+    -- create game / buttons
+    initGame <- liftIO init
 
     buttons <- mkButtons $ L.view (sBoard . bSize) initGame
+    faceButton <- UI.button
+
+    beginnerButton <- UI.button # set UI.text "Beginner"
+                                #. "difficulty-button beginner"
+    intermediateButton <- UI.button # set UI.text "Intermediate"
+                                    #. "difficulty-button intermediate"
+    expertButton <- UI.button # set UI.text "Expert"
+                                    #. "difficulty-button expert"
 
     -- handlers
-    let inputs = mapWithIx (\ix b -> setHandlers ix b) (concat buttons)
+    body <- getBody window
+    return body # set (UI.attr "oncontextmenu") "return false;"
+
+    gameTimer <- UI.timer
+    UI.start gameTimer
+
+    let inputs =
+            (restart <$ UI.click faceButton)
+            : (incTimer <$ UI.tick gameTimer)
+            : (mouseUpGlobal <$ UI.mouseup body)
+            : mapWithIx (\ix b -> setHandlers ix b) (concat buttons)
 
     game <- accumB initGame $ fmap head $ unions inputs
+
+    -- counters
+    flagCounter <- UI.label # sink UI.text (fmap (show . L.view sFlags) game)
+    timerLabel <- UI.label # sink UI.text (fmap (show . L.view sTime) game)
 
     -- classes and button text
     return faceButton # sink (UI.attr "class") (flip fmap game $ \g ->
@@ -45,20 +64,52 @@ setup window = do
                   # sink UI.text (btnBehavior ix game buttonText)
 
     -- display / layout
-    let topPanel = row 
+    let diffs = row
+            [ element beginnerButton
+            , element intermediateButton
+            , element expertButton
+            ]
+        
+        topPanel = row 
             [ element flagCounter
             , element faceButton
-            , element timer
+            , element timerLabel
             ]
 
         displayGrid = column
-            [ topPanel
+            [ diffs
+            , topPanel
             , grid $ map2 element buttons
             ]
 
     getBody window #+ [UI.center #+ [displayGrid]]
 
-    return ()
+    -- for deleting old elements when changing difficulty
+    let allElems = 
+            element beginnerButton
+            : element intermediateButton
+            : element expertButton
+            : element faceButton
+            : diffs
+            : topPanel
+            : displayGrid
+            : map element (concat buttons)
+
+    on UI.click beginnerButton $ const $
+            changeDifficulty mkBeginner window allElems gameTimer
+
+    on UI.click intermediateButton $ const $
+            changeDifficulty mkIntermediate window allElems gameTimer
+
+    on UI.click expertButton $ const $
+            changeDifficulty mkExpert window allElems gameTimer
+
+changeDifficulty :: IO Sweeper -> Window -> [UI Element] -> UI.Timer -> UI ()
+changeDifficulty newGame window oldElems oldTimer = do
+    els <- sequence oldElems
+    mapM_ delete els
+    UI.stop oldTimer
+    setup newGame window
 
 btnBehavior :: Int -> Behavior Sweeper -> (Button -> a) -> Behavior a
 btnBehavior ix game f = flip fmap game $ \g ->
@@ -68,11 +119,11 @@ btnBehavior ix game f = flip fmap game $ \g ->
 
 setHandlers :: Int -> Element -> Event (Sweeper -> Sweeper)
 setHandlers ix el = fmap head $ unions
-    [ applyHandler rightClick ix <$ UI.contextmenu el
-    , unionWith (.)
-        (applyHandler leftClick ix <$ UI.click el)
-        (applyHandler mouseUp ix <$ UI.mouseup el)
-    , applyHandler mouseDown ix <$ UI.mousedown el
+    [ unionWith (.)
+        (applyHandler (ifNotOver leftClick) ix <$ UI.click el)
+        (applyHandler (ifNotOver mouseUp) ix <$ UI.mouseup el)
+    , applyHandler (ifNotOver rightClick) ix <$ UI.contextmenu el
+    , applyHandler (ifNotOver mouseDown) ix <$ UI.mousedown el
     ]
 
 applyHandler :: Handler -> Int -> Sweeper -> Sweeper

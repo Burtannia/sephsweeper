@@ -3,7 +3,6 @@
 module Sweeper.Core where
 
 import Sweeper.Board
-import Data.Time.Clock
 import Control.Lens
 
 data GameState = Unstarted
@@ -15,7 +14,7 @@ data Sweeper = Sweeper
     { _sBoard :: Board
     , _sMines :: Int
     , _sFlags :: Int
-    , _sStart :: Maybe UTCTime
+    , _sTime  :: Int
     , _sState :: GameState
     , _sClick :: Bool
     } deriving Show
@@ -25,9 +24,12 @@ makeLenses ''Sweeper
 mkGame :: Size -> Int -> IO Sweeper
 mkGame sz n = do
     b <- mkBoard sz n
-    return $! Sweeper b n n Nothing Unstarted False
+    return $! Sweeper b n n 0 Unstarted False
 
 -- Standard Modes
+
+data Difficulty = Beginner | Intermediate | Expert
+    deriving (Show, Eq)
 
 mkBeginner :: IO Sweeper
 mkBeginner = mkGame (9,9) 10

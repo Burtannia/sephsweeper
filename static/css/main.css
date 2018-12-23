@@ -1,21 +1,26 @@
+html{
+    background-color: #222222;
+}
+
 .button-none {
-    background-color: grey;
+    background: silver url(/static/images/tegank.png) center no-repeat;
 }
 
 .button-revealed {
-    background-color: lightgray;
+    background-color: silver;
+    border: none;
 }
 
 .button-flagged {
-    background: gray url(/static/images/flag.png) center no-repeat;
+    background: silver url(/static/images/flag.png) center no-repeat;
 }
 
 .button-question {
-    background: gray url(/static/images/question.png) center no-repeat;
+    background: silver url(/static/images/question.png) center no-repeat;
 }
 
 .mine {
-    background: lightgrey url(/static/images/mine.png) center no-repeat;
+    background: silver url(/static/images/mine.png) center no-repeat;
 }
 
 .mine-tripped {
@@ -30,38 +35,24 @@
     font-weight: 700;
     padding: 0 !important;
     margin: 0 !important;
-    border-color: gray white white gray;
+    border-width: 3px;
+    border-color: whitesmoke darkgray darkgray whitesmoke;
 }
-
-/* .table {
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.table-row {
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.table-cell {
-    padding: 0 !important;
-    margin: 0 !important;
-} */
 
 .win {
-    background: grey url(/static/images/win.png) center no-repeat;
+    background: silver url(/static/images/win.png) center no-repeat;
 }
 
 .lose {
-    background: grey url(/static/images/lose.png) center no-repeat;
+    background: silver url(/static/images/lose.png) center no-repeat;
 }
 
 .clicking {
-    background: grey url(/static/images/concerned.png) center no-repeat;
+    background: silver url(/static/images/concerned.png) center no-repeat;
 }
 
 .normal {
-    background: grey url(/static/images/happy.png) center no-repeat;
+    background: silver url(/static/images/happy.png) center no-repeat;
 }
 
 .face-button {
