@@ -61,7 +61,7 @@ selectRand n xs
     | n > length xs = return xs
     | n <= 0        = return []
     | otherwise     = do
-        gen <- getStdGen
+        gen <- newStdGen
         let rs = (randoms gen :: [Int])
             ys = sortBy (\(_,i) (_,j) -> compare i j) (zip xs rs)
         return $! map fst $ take n ys
